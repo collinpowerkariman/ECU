@@ -5,12 +5,12 @@
       "Application": "Pcbnew",
       "Version": "7.0.6-7.0.6~ubuntu22.04.1"
     },
-    "CreationDate": "2023-09-05T16:39:34+08:00"
+    "CreationDate": "2023-10-10T10:40:32+08:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
-      "Name": "CAM_Module",
-      "GUID": "43414d5f-4d6f-4647-956c-652e6b696361",
+      "Name": "CAM",
+      "GUID": "43414d2e-6b69-4636-9164-5f7063625858",
       "Revision": "rev?"
     },
     "Size": {
@@ -24,8 +24,8 @@
   "DesignRules": [
     {
       "Layers": "Outer",
-      "PadToPad": 0.0,
-      "PadToTrack": 0.0,
+      "PadToPad": 0.2,
+      "PadToTrack": 0.2,
       "TrackToTrack": 0.2,
       "MinLineWidth": 0.25,
       "TrackToRegion": 0.2,
@@ -34,47 +34,47 @@
   ],
   "FilesAttributes": [
     {
-      "Path": "CAM_Module-F_Cu.gbr",
+      "Path": "CAM-F_Cu.gbr",
       "FileFunction": "Copper,L1,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "CAM_Module-B_Cu.gbr",
+      "Path": "CAM-B_Cu.gbr",
       "FileFunction": "Copper,L2,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "CAM_Module-F_Paste.gbr",
+      "Path": "CAM-F_Paste.gbr",
       "FileFunction": "SolderPaste,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "CAM_Module-B_Paste.gbr",
+      "Path": "CAM-B_Paste.gbr",
       "FileFunction": "SolderPaste,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "CAM_Module-F_Silkscreen.gbr",
+      "Path": "CAM-F_Silkscreen.gbr",
       "FileFunction": "Legend,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "CAM_Module-B_Silkscreen.gbr",
+      "Path": "CAM-B_Silkscreen.gbr",
       "FileFunction": "Legend,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "CAM_Module-F_Mask.gbr",
+      "Path": "CAM-F_Mask.gbr",
       "FileFunction": "SolderMask,Top",
       "FilePolarity": "Negative"
     },
     {
-      "Path": "CAM_Module-B_Mask.gbr",
+      "Path": "CAM-B_Mask.gbr",
       "FileFunction": "SolderMask,Bot",
       "FilePolarity": "Negative"
     },
     {
-      "Path": "CAM_Module-Edge_Cuts.gbr",
+      "Path": "CAM-Edge_Cuts.gbr",
       "FileFunction": "Profile",
       "FilePolarity": "Positive"
     }
