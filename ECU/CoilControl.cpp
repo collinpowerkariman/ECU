@@ -4,9 +4,14 @@
 #include "FS.h"
 #include "Logger.h"
 
-CoilControl::CoilControl() {}
+CoilControl_ &CoilControl_::getInstance() {
+  static CoilControl_ instance;
+  return instance;
+}
 
-void CoilControl::updateTargetAngle() {
+CoilControl_ &CoilControl = CoilControl.getInstance();
+
+void CoilControl_::updateTargetAngle() {
   if (state != PRIMED) {
     return;
   }
@@ -21,12 +26,12 @@ void CoilControl::updateTargetAngle() {
   target_angle = target_angle_lut[step];
 }
 
-bool CoilControl::shouldDischarge() {
+bool CoilControl_::shouldDischarge() {
   if (state != CHARGING) {
     return false;
   }
 
-  if (current_angle >= target_angle) {
+  if (angle >= target_angle) {
     return true;
   }
 
@@ -34,17 +39,17 @@ bool CoilControl::shouldDischarge() {
   return (charge_time >= maximum_charge_time);
 }
 
-void CoilControl::discharge() {
+void CoilControl_::discharge() {
   digitalWrite(COIL_PIN, LOW);
   state = DISCHARGED;
 }
 
-bool CoilControl::shouldCharge() {
+bool CoilControl_::shouldCharge() {
   if (state != PRIMED) {
     return false;
   }
 
-  if (current_angle >= target_angle) {
+  if (angle >= target_angle) {
     return false;
   }
 
@@ -52,18 +57,19 @@ bool CoilControl::shouldCharge() {
     return false;
   }
 
-  float available = target_angle - current_angle;
+  float available = target_angle - angle;
   float required = dpu * minimum_charge_time;
   return (available <= required);
 }
 
-void CoilControl::charge() {
+void CoilControl_::charge() {
   digitalWrite(COIL_PIN, HIGH);
   state = CHARGING;
   charging_timestamp = micros();
+  charging_rpm = rpm;
 }
 
-bool CoilControl::shouldPrime() {
+bool CoilControl_::shouldPrime() {
   if (state == CHARGING) {
     return false;
   }
@@ -71,12 +77,13 @@ bool CoilControl::shouldPrime() {
   return rolled_over;
 }
 
-void CoilControl::prime() {
+void CoilControl_::prime() {
   digitalWrite(COIL_PIN, LOW);
   state = PRIMED;
+  charging_rpm = 0;
 }
 
-bool CoilControl::begin(DynamicJsonDocument config) {
+bool CoilControl_::begin(DynamicJsonDocument config) {
   Logger.logln("Loading coil control configuration... ");
   
   minimum_charge_time = config["coil_control"]["minimum_charge_time"];
@@ -100,9 +107,9 @@ bool CoilControl::begin(DynamicJsonDocument config) {
   return true;
 }
 
-bool IRAM_ATTR CoilControl::update(bool rolled_over, float current_angle, float dpu, int rpm) {
+CoilControl_::Reading IRAM_ATTR CoilControl_::update(bool rolled_over, float angle, float dpu, int rpm) {
   this->rolled_over = rolled_over;
-  this->current_angle = current_angle;
+  this->angle = angle;
   this->dpu = dpu;
   this->rpm = rpm;
   
@@ -117,13 +124,5 @@ bool IRAM_ATTR CoilControl::update(bool rolled_over, float current_angle, float 
     prime();
   }
 
-  return true;
-}
-
-int CoilControl::getState() {
-  return state;
-}
-
-float CoilControl::getTargetAngle() {
-  return target_angle;
+  return {state, charging_rpm, target_angle};
 }

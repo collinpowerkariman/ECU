@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="ECU_v0.1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/hardware/ECU/ECU_v0.1.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

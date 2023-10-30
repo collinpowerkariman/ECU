@@ -2,16 +2,13 @@
 #include "SD_MMC.h"
 #include "CamshaftSensor.h"
 #include "CoilControl.h"
+#include "RawDataLogger.h"
 #include "DataLogger.h"
 #include "Logger.h"
 #include "soc/rtc_wdt.h"
 #include "esp_task_wdt.h"
 
-CamshaftSensor camshaftSensor;
-CoilControl coilControl;
 TaskHandle_t MainThread;
-
-DataLogger dataLogger;
 TaskHandle_t SubThread;
 
 void setup() {
@@ -35,15 +32,19 @@ void setup() {
   }
   f.close();
 
-  if (!camshaftSensor.begin(config)) {
+  if (!CamshaftSensor.begin(config)) {
     while (true) continue;
   }
 
-  if (!coilControl.begin(config)) {
+  if (!CoilControl.begin(config)) {
     while (true) continue;
   }
 
-  if (!dataLogger.begin(config)) {
+  if (!RawDataLogger.begin(config)) {
+    while (true) continue;
+  }
+
+  if (!DataLogger.begin()) {
     while (true) continue;
   }
 
@@ -58,32 +59,13 @@ void MainLoop(void *p) {
   disableLoopWDT();
   esp_task_wdt_delete(NULL);
 
-  unsigned long delta_time;
-  bool rolled_over;
-  bool predicted;
-  float current_angle;
-  float predicted_angle;
-  float dpu;
-  int rpm;
-  int coil_state;
-  float target_angle;
-
+  CamshaftSensor_::Reading camshaft;
+  CoilControl_::Reading coil;
   for (;;) {
-    camshaftSensor.update();
-    delta_time = camshaftSensor.getDeltaTime();
-    rolled_over = camshaftSensor.isRolledOver();
-    current_angle = camshaftSensor.getCurrentAngle();
-    dpu = camshaftSensor.getDPU();
-    rpm = camshaftSensor.getRPM();
-    predicted_angle = camshaftSensor.getPredictedAngle();
-    predicted = camshaftSensor.isPredicted();
-
-    coilControl.update(rolled_over, current_angle, dpu, rpm);
-    coil_state = coilControl.getState();
-    target_angle = coilControl.getTargetAngle();
-
-    dataLogger.log(delta_time, current_angle, dpu, rpm, coil_state, target_angle, rolled_over, predicted_angle, predicted);
-    delayMicroseconds(34);
+    camshaft = CamshaftSensor.update();
+    coil = CoilControl.update(camshaft.rolled_over, camshaft.angle, camshaft.dpu, camshaft.rpm);
+    RawDataLogger.log(camshaft.elapsed, camshaft.angle, camshaft.dpu, camshaft.rpm, camshaft.rolled_over, camshaft.predicted_angle, camshaft.predicted_angle_used, coil.state, coil.charging_rpm, coil.target_discharge_angle);
+    delayMicroseconds(30);
   }
 }
 
@@ -97,12 +79,10 @@ void SubLoop(void *p) {
   pinMode(34, INPUT);
 
   for (;;) {
-    if (dataLogger.getState() == DataLogger::READY) {
-      if (digitalRead(34) == LOW) {
-        dataLogger.startCapture();
-      }
+    if (digitalRead(34) == LOW) {
+      RawDataLogger.toggle();
     }
-    dataLogger.update();
+    RawDataLogger.update();
   }
 }
 

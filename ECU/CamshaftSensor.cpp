@@ -3,11 +3,28 @@
 #include "FS.h"
 #include "Logger.h"
 
-CamshaftSensor::CamshaftSensor()
-  : sensor(CAMSHAFT_SENSOR_SPI_CS_PIN, CAMSHAFT_SENSOR_SPI_BUS_SPEED) {
+CamshaftSensor_ &CamshaftSensor_::getInstance() {
+  static CamshaftSensor_ instance;
+  return instance;
 }
 
-bool CamshaftSensor::begin(DynamicJsonDocument config) {
+CamshaftSensor_ &CamshaftSensor = CamshaftSensor.getInstance();
+
+bool CamshaftSensor_::updateAngle() {
+  current_angle = sensor->readAngleDegree();
+  if (current_angle >= zero_position) {
+    current_angle = current_angle - zero_position;
+  } else {
+    current_angle = 360.0 + (current_angle - zero_position);
+  }
+  predicted_angle = 0;
+
+  return true;
+}
+
+bool CamshaftSensor_::begin(DynamicJsonDocument config) {
+  this->sensor = new AS5047P(CAMSHAFT_SENSOR_SPI_CS_PIN, CAMSHAFT_SENSOR_SPI_BUS_SPEED);
+
   // loading configuration
   Logger.logln("Loading camshaft configuration... ");
   zero_position = config["camshaft"]["zero_position"];
@@ -16,7 +33,7 @@ bool CamshaftSensor::begin(DynamicJsonDocument config) {
 
   // initialize spi connection
   Logger.log("Connecting to camshaft sensor: ");
-  if (!sensor.initSPI()) {
+  if (!sensor->initSPI()) {
     Logger.logln("Failed");
     return false;
   } else {
@@ -38,27 +55,14 @@ bool CamshaftSensor::begin(DynamicJsonDocument config) {
   acc = 0;
 
   current_timestamp = micros();
-  current_angle = sensor.readAngleDegree();
-  if (current_angle >= zero_position) {
-    current_angle = current_angle - zero_position;
-  } else {
-    current_angle = 360.0 + (current_angle - zero_position);
-  }
-  predicted_angle = 0;
+  updateAngle();
 
   return true;
 }
 
-bool IRAM_ATTR CamshaftSensor::update() {
+CamshaftSensor_::Reading IRAM_ATTR CamshaftSensor_::update() {
   current_timestamp = micros();
-
-  // applying zero position
-  current_angle = sensor.readAngleDegree();
-  if (current_angle >= zero_position) {
-    current_angle = current_angle - zero_position;
-  } else {
-    current_angle = 360.0 + (current_angle - zero_position);
-  }
+  updateAngle();
 
   // detecting rollover, since update() will be called very often
   // sufficiently large delta can be consider as sign of a rollover.
@@ -77,13 +81,20 @@ bool IRAM_ATTR CamshaftSensor::update() {
   // replace oulier with predcted angle using d=v*t+0.5*a*t^2
   float reading = delta_angle / delta_time;
   predicted_angle = previous_angle + (dpu * delta_time) + (0.5 * acc * delta_time * delta_time);
-  if (previous_angle >= 180 && previous_angle < 270 && abs(current_angle - predicted_angle) > 90) {
+  if (predicted_angle >= 360) {
+    predicted_angle = predicted_angle - 360;
+  }
+
+  // only allow predicted_angle to be use above 1000 rpm, to let the engine reach a stable rpm first
+  // only allow predicted_angle to be use between 10 - 349 degree, to avoid false positive cause by rolled over
+  // only allow predicted_angle when the difference is bigger than 30 degree
+  if (rpm > 1000 && (9 > previous_angle || previous_angle < 350) && abs(current_angle - predicted_angle) > 30) {
     current_angle = predicted_angle;
     delta_angle = abs(current_angle - previous_angle);
     reading = delta_angle / delta_time;
-    predicted = true;
+    predicted_angle_used = true;
   } else {
-    predicted = false;
+    predicted_angle_used = false;
   }
 
   if (index == 9) {
@@ -101,11 +112,12 @@ bool IRAM_ATTR CamshaftSensor::update() {
 
   previous_timestamp = current_timestamp;
   previous_angle = current_angle;
-  return true;
+
+  return { delta_time, current_angle, dpu, rpm, rolled_over, predicted_angle, predicted_angle_used };
 }
 
-bool CamshaftSensor::zero() {
-  zero_position = sensor.readAngleDegree();
+bool CamshaftSensor_::zero() {
+  zero_position = sensor->readAngleDegree();
 
   Logger.log("Saving camshaft zero position: ");
   File f = SD_MMC.open("/configuration.json", FILE_WRITE);
@@ -126,36 +138,4 @@ bool CamshaftSensor::zero() {
     Logger.logln("Success");
   }
   return true;
-}
-
-bool CamshaftSensor::isRolledOver() {
-  return rolled_over;
-}
-
-bool CamshaftSensor::isPredicted() {
-  return predicted;
-}
-
-float CamshaftSensor::getCurrentAngle() {
-  return current_angle;
-}
-
-float CamshaftSensor::getPreviousAngle() {
-  return previous_angle;
-}
-
-float CamshaftSensor::getPredictedAngle() {
-  return predicted_angle;
-}
-
-float CamshaftSensor::getDPU() {
-  return dpu;
-}
-
-int CamshaftSensor::getRPM() {
-  return rpm;
-}
-
-unsigned long CamshaftSensor::getDeltaTime() {
-  return delta_time;
 }
