@@ -34,9 +34,9 @@
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 0.762,
-          "height": 1.524,
-          "width": 1.524
+          "drill": 0.4,
+          "height": 0.7,
+          "width": 0.7
         },
         "silk_line_width": 0.15,
         "silk_text_italic": false,
@@ -55,11 +55,7 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [
-        "starved_thermal|169012500|85915000|93f188ce-2df3-4cb8-b2cb-4078c7d2a9d5|046a0757-76da-464d-a38f-f9632f668273|F.Cu",
-        "starved_thermal|169712500|84515000|93f188ce-2df3-4cb8-b2cb-4078c7d2a9d5|4916b2fb-fcf2-4ca9-a5c1-3bcde3e6d592|F.Cu",
-        "starved_thermal|169712500|87315000|93f188ce-2df3-4cb8-b2cb-4078c7d2a9d5|f0d26f0a-6c87-41ee-9660-5a180eaf92e7|F.Cu"
-      ],
+      "drc_exclusions": [],
       "meta": {
         "version": 2
       },
@@ -405,7 +401,9 @@
     }
   },
   "libraries": {
-    "pinned_footprint_libs": [],
+    "pinned_footprint_libs": [
+      "MyLibrary"
+    ],
     "pinned_symbol_libs": []
   },
   "meta": {
